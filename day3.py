@@ -3,8 +3,6 @@ def classify_result(marks):
         return "PASS"
     else:
         return "FAIL"
-
-
 def main():
     print("\n" + "=" * 70)
     print("STUDENT RESULT CLASSIFICATION SYSTEM")
