@@ -7,7 +7,7 @@ def probability_examples():
     print("PROBABILITY ANALYSIS USING NUMPY (NORMALIZED VECTORS)")
     print("=" * 70)
     print("\n Coin Toss (Head / Tail)")
-    coin = np.array([1, 1])  # Equal chances
+    coin = np.array([1, 1]) 
     coin_prob = normalize_vector(coin)
     print("Probability Distribution:", coin_prob)
     print("\n Dice Roll (1–6)")
@@ -15,7 +15,7 @@ def probability_examples():
     dice_prob = normalize_vector(dice)
     print("Probability Distribution:", dice_prob)
     print("\n Student Result (Pass / Fail)")
-    students = np.array([70, 30])  # 70 pass, 30 fail
+    students = np.array([70, 30]) 
     student_prob = normalize_vector(students)
     print("Probability Distribution:", student_prob)
     print("\n Weather Prediction (Rain / No Rain)")
