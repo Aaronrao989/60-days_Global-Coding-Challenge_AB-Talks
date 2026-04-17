@@ -232,8 +232,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Load model ─────────────────────────────────────────────────────────────────
-vectorizer = joblib.load("/Users/aaronrao/Desktop/projects/Global Coding Challenge/day40/tfidf_vectorizer.pkl")
-model = joblib.load("/Users/aaronrao/Desktop/projects/Global Coding Challenge/day40/sentiment_model.pkl")
+vectorizer = joblib.load("/Users/aaronrao/Desktop/projects/Global Coding Challenge/day41/tfidf_vectorizer.pkl")
+model = joblib.load("/Users/aaronrao/Desktop/projects/Global Coding Challenge/day41/sentiment_model.pkl")
 
 # ── Logic ──────────────────────────────────────────────────────────────────────
 def clean_text(text):
