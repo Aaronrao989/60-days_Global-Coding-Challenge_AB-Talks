@@ -1,9 +1,7 @@
 import streamlit as st
 import joblib
 import re
-import nltk
-from nltk.corpus import stopwords
-nltk.download('stopwords')
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -240,9 +238,11 @@ def clean_text(text):
     text = str(text).lower()
     text = re.sub(r'<.*?>', '', text)
     text = re.sub(r'[^\w\s]', '', text)
-    stop_words = set(stopwords.words('english'))
+    
+    stop_words = set(ENGLISH_STOP_WORDS)
     words = text.split()
     words = [word for word in words if word not in stop_words]
+    
     return " ".join(words)
 
 # ── Input card ─────────────────────────────────────────────────────────────────
