@@ -303,8 +303,8 @@ def _tld_prob(domain):
 @st.cache_resource
 def load_model():
     try:
-        model  = joblib.load("/Users/aaronrao/Desktop/projects/Global Coding Challenge/day50-58/phishing_detector_model.pkl")
-        scaler = joblib.load("/Users/aaronrao/Desktop/projects/Global Coding Challenge/day50-58/phishing_detector_scaler.pkl")
+        model  = joblib.load("day50-58/phishing_detector_model.pkl")
+        scaler = joblib.load("day50-58/phishing_detector_scaler.pkl")
         return model, scaler, True
     except FileNotFoundError:
         return None, None, False
