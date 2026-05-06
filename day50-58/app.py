@@ -8,6 +8,7 @@ import joblib
 import re
 from urllib.parse import urlparse
 import warnings
+import os
 warnings.filterwarnings("ignore")
 
 # ─────────────────────────────────────────────
@@ -303,10 +304,17 @@ def _tld_prob(domain):
 @st.cache_resource
 def load_model():
     try:
-        model  = joblib.load("day50-58/phishing_detector_model.pkl")
-        scaler = joblib.load("day50-58/phishing_detector_scaler.pkl")
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        model_path  = os.path.join(BASE_DIR, "phishing_detector_model.pkl")
+        scaler_path = os.path.join(BASE_DIR, "phishing_detector_scaler.pkl")
+
+        model  = joblib.load(model_path)
+        scaler = joblib.load(scaler_path)
+
         return model, scaler, True
-    except FileNotFoundError:
+    except Exception as e:
+        st.error(f"Model loading error: {e}")
         return None, None, False
 
 
