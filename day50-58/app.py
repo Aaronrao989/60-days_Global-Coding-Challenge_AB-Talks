@@ -8,7 +8,6 @@ import joblib
 import re
 from urllib.parse import urlparse
 import warnings
-import os
 warnings.filterwarnings("ignore")
 
 # ─────────────────────────────────────────────
@@ -299,22 +298,44 @@ def _tld_prob(domain):
 
 
 # ─────────────────────────────────────────────
+#  EXACT FEATURE COLUMN ORDER (must match training)
+# ─────────────────────────────────────────────
+FEATURE_COLS = [
+    "URLLength", "DomainLength", "IsDomainIP", "URLSimilarityIndex",
+    "CharContinuationRate", "TLDLegitimateProb", "URLCharProb", "TLDLength",
+    "NoOfSubDomain", "HasObfuscation", "NoOfObfuscatedChar", "ObfuscationRatio",
+    "NoOfLettersInURL", "LetterRatioInURL", "NoOfDegitsInURL", "DegitRatioInURL",
+    "NoOfEqualsInURL", "NoOfQMarkInURL", "NoOfAmpersandInURL",
+    "NoOfOtherSpecialCharsInURL", "SpacialCharRatioInURL", "IsHTTPS",
+    "LineOfCode", "LargestLineLength", "HasTitle", "DomainTitleMatchScore",
+    "URLTitleMatchScore", "HasFavicon", "Robots", "IsResponsive",
+    "NoOfURLRedirect", "NoOfSelfRedirect", "HasDescription", "NoOfPopup",
+    "NoOfiFrame", "HasExternalFormSubmit", "HasSocialNet", "HasSubmitButton",
+    "HasHiddenFields", "HasPasswordField", "Bank", "Pay", "Crypto",
+    "HasCopyrightInfo", "NoOfImage", "NoOfCSS", "NoOfJS", "NoOfSelfRef",
+    "NoOfEmptyRef", "NoOfExternalRef",
+    # engineered features added in notebook
+    "DigitLetterRatio", "TotalSpecialChars", "URLToDomainRatio",
+    "HasExternalResources", "HasRedirect",
+]
+
+def feats_to_df(feats: dict) -> pd.DataFrame:
+    """Build a single-row DataFrame with columns in exact training order.
+    Missing columns are filled with 0 so the model never receives NaN."""
+    row = {col: feats.get(col, 0) for col in FEATURE_COLS}
+    return pd.DataFrame([row], columns=FEATURE_COLS)
+
+
+# ─────────────────────────────────────────────
 #  MODEL LOADER
 # ─────────────────────────────────────────────
 @st.cache_resource
 def load_model():
     try:
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-        model_path  = os.path.join(BASE_DIR, "phishing_detector_model.pkl")
-        scaler_path = os.path.join(BASE_DIR, "phishing_detector_scaler.pkl")
-
-        model  = joblib.load(model_path)
-        scaler = joblib.load(scaler_path)
-
+        model  = joblib.load("phishing_detector_model.pkl")
+        scaler = joblib.load("phishing_detector_scaler.pkl")
         return model, scaler, True
-    except Exception as e:
-        st.error(f"Model loading error: {e}")
+    except FileNotFoundError:
         return None, None, False
 
 
@@ -518,6 +539,10 @@ with st.sidebar:
         st.success("✅ Model loaded")
         try:
             st.caption(f"Type: `{type(model).__name__}`")
+            n_expected = getattr(model, 'n_features_in_', None)
+            if n_expected:
+                match = "✅" if n_expected == len(FEATURE_COLS) else "⚠️"
+                st.caption(f"{match} Features: model={n_expected}, app={len(FEATURE_COLS)}")
         except:
             pass
     else:
@@ -593,14 +618,17 @@ with tab1:
         if not feats:
             st.error("Could not extract features from this URL.")
         else:
-            feat_series = pd.Series(feats)
-            feat_df = feat_series.to_frame().T
+            # Use ordered DataFrame — column order MUST match training
+            feat_df = feats_to_df(feats)
 
             # ── MODEL PREDICTION ──
             if loaded:
                 try:
-                    pred = model.predict(feat_df)[0]
-                    prob = model.predict_proba(feat_df)[0]
+                    # Align columns to exactly what the model saw during training
+                    n_expected = getattr(model, 'n_features_in_', len(FEATURE_COLS))
+                    input_df = feat_df.iloc[:, :n_expected]
+                    pred = model.predict(input_df)[0]
+                    prob = model.predict_proba(input_df)[0]
                     prob_legit = prob[1]
                     prob_phish = prob[0]
                     model_used = True
@@ -855,12 +883,14 @@ with tab3:
             if not url.startswith(('http://', 'https://')):
                 url = 'http://' + url
             feats = extract_url_features(url)
-            feat_df = pd.Series(feats).to_frame().T
+            feat_df = feats_to_df(feats)
 
             if loaded:
                 try:
-                    pred = model.predict(feat_df)[0]
-                    prob = model.predict_proba(feat_df)[0]
+                    n_expected = getattr(model, 'n_features_in_', len(FEATURE_COLS))
+                    input_df = feat_df.iloc[:, :n_expected]
+                    pred = model.predict(input_df)[0]
+                    prob = model.predict_proba(input_df)[0]
                     prob_legit = prob[1]
                 except:
                     prob_legit = 1 - min((
