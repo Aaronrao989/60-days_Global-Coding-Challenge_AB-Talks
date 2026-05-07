@@ -778,15 +778,15 @@ with tab1:
 
                     # Debug panel
                     with st.expander("🔬 Debug Info"):
-                    st.write("Model classes:", model.classes_)
-                    st.write("Raw probabilities:", prob)
-                    st.write("Predicted class:", pred)
-                    st.write("Legit Probability:", prob_legit)
-                    st.write("Phishing Probability:", prob_phish)
-                    st.write("First 10 Features:", X_input[0][:10])
-                    st.write("URLSimilarityIndex:", feats.get("URLSimilarityIndex"))
-                    st.write("HTTPS:", feats.get("IsHTTPS"))
-                    st.write("TLDLegitimateProb:", feats.get("TLDLegitimateProb"))
+                        st.write("Model classes:", model.classes_)
+                        st.write("Raw probabilities:", prob)
+                        st.write("Predicted class:", pred)
+                        st.write("Legit Probability:", prob_legit)
+                        st.write("Phishing Probability:", prob_phish)
+                        st.write("First 10 Features:", X_input[0][:10])
+                        st.write("URLSimilarityIndex:", feats.get("URLSimilarityIndex"))
+                        st.write("HTTPS:", feats.get("IsHTTPS"))
+                        st.write("TLDLegitimateProb:", feats.get("TLDLegitimateProb"))
 
                     model_used = True
                 except Exception as e:
