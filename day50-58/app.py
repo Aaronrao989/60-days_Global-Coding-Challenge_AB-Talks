@@ -203,80 +203,197 @@ section[data-testid="stSidebar"] h3 { color: #58a6ff !important; }
 
 
 # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
 #  FEATURE EXTRACTION FROM URL
 # ─────────────────────────────────────────────
+
+# Realistic defaults from training distribution
+TRAIN_MEANS = {
+    "URLSimilarityIndex": 78.4308,
+    "LineOfCode": 1141.9004,
+    "LargestLineLength": 12789.5326,
+    "HasTitle": 0.8613,
+    "DomainTitleMatchScore": 50.1314,
+    "URLTitleMatchScore": 52.1221,
+    "HasFavicon": 0.3618,
+    "Robots": 0.2665,
+    "IsResponsive": 0.6245,
+    "NoOfURLRedirect": 0.1334,
+    "NoOfSelfRedirect": 0.0401,
+    "HasDescription": 0.4402,
+    "NoOfPopup": 0.2218,
+    "NoOfiFrame": 1.5886,
+    "HasExternalFormSubmit": 0.0440,
+    "HasSocialNet": 0.4566,
+    "HasSubmitButton": 0.4143,
+    "HasHiddenFields": 0.3778,
+    "HasCopyrightInfo": 0.4868,
+    "NoOfImage": 26.0757,
+    "NoOfCSS": 6.3331,
+    "NoOfJS": 10.5223,
+    "NoOfSelfRef": 65.0711,
+    "NoOfEmptyRef": 2.3776,
+    "NoOfExternalRef": 49.2625,
+    "HasExternalResources": 0.7637,
+}
+
+
 def extract_url_features(url: str) -> dict:
     """Extract numeric features from a raw URL string."""
+
     try:
         parsed = urlparse(url)
         domain = parsed.netloc or parsed.path
-        path = parsed.path or ""
-        query = parsed.query or ""
         full = url
 
+        letters = len(re.findall(r'[a-zA-Z]', full))
+        digits = len(re.findall(r'\d', full))
+
         features = {
-            "URLLength":                   len(full),
-            "DomainLength":                len(domain),
-            "IsDomainIP":                  int(bool(re.match(r'^\d{1,3}(\.\d{1,3}){3}$', domain.replace('www.','')))),
-            "URLSimilarityIndex":          0.0,   # requires comparison corpus
-            "CharContinuationRate":        _char_continuation(full),
-            "TLDLegitimateProb":           _tld_prob(domain),
-            "URLCharProb":                 len(re.findall(r'[a-zA-Z0-9]', full)) / max(len(full), 1),
-            "TLDLength":                   len(domain.split('.')[-1]) if '.' in domain else 0,
-            "NoOfSubDomain":               max(len(domain.split('.')) - 2, 0),
-            "HasObfuscation":              int('%' in full or '@' in full),
-            "NoOfObfuscatedChar":          full.count('%'),
-            "ObfuscationRatio":            full.count('%') / max(len(full), 1),
-            "NoOfLettersInURL":            len(re.findall(r'[a-zA-Z]', full)),
-            "LetterRatioInURL":            len(re.findall(r'[a-zA-Z]', full)) / max(len(full), 1),
-            "NoOfDegitsInURL":             len(re.findall(r'\d', full)),
-            "DegitRatioInURL":             len(re.findall(r'\d', full)) / max(len(full), 1),
-            "NoOfEqualsInURL":             full.count('='),
-            "NoOfQMarkInURL":              full.count('?'),
-            "NoOfAmpersandInURL":          full.count('&'),
-            "NoOfOtherSpecialCharsInURL":  len(re.findall(r'[^a-zA-Z0-9\-._~:/?#\[\]@!$&\'()*+,;=%]', full)),
-            "SpacialCharRatioInURL":       len(re.findall(r'[^a-zA-Z0-9]', full)) / max(len(full), 1),
-            "IsHTTPS":                     int(parsed.scheme == 'https'),
-            # Page-level features default to neutral values without fetching
-            "LineOfCode":                  0,
-            "LargestLineLength":           0,
-            "HasTitle":                    0,
-            "DomainTitleMatchScore":       0.0,
-            "URLTitleMatchScore":          0.0,
-            "HasFavicon":                  0,
-            "Robots":                      0,
-            "IsResponsive":                0,
-            "NoOfURLRedirect":             0,
-            "NoOfSelfRedirect":            0,
-            "HasDescription":              0,
-            "NoOfPopup":                   0,
-            "NoOfiFrame":                  0,
-            "HasExternalFormSubmit":       0,
-            "HasSocialNet":                0,
-            "HasSubmitButton":             0,
-            "HasHiddenFields":             0,
-            "HasPasswordField":            int('password' in full.lower() or 'login' in full.lower()),
-            "Bank":                        int(any(w in full.lower() for w in ['bank','banking','secure','account'])),
-            "Pay":                         int(any(w in full.lower() for w in ['pay','payment','checkout','billing'])),
-            "Crypto":                      int(any(w in full.lower() for w in ['crypto','bitcoin','wallet','nft'])),
-            "HasCopyrightInfo":            0,
-            "NoOfImage":                   0,
-            "NoOfCSS":                     0,
-            "NoOfJS":                      0,
-            "NoOfSelfRef":                 0,
-            "NoOfEmptyRef":                0,
-            "NoOfExternalRef":             0,
+
+            # ─────────────────────────────
+            # URL LEVEL FEATURES
+            # ─────────────────────────────
+            "URLLength": len(full),
+
+            "DomainLength": len(domain),
+
+            "IsDomainIP": int(
+                bool(
+                    re.match(
+                        r'^\d{1,3}(\.\d{1,3}){3}$',
+                        domain.replace('www.', '')
+                    )
+                )
+            ),
+
+            "URLSimilarityIndex": TRAIN_MEANS["URLSimilarityIndex"],
+
+            "CharContinuationRate": _char_continuation(full),
+
+            "TLDLegitimateProb": _tld_prob(domain),
+
+            "URLCharProb": (
+                len(re.findall(r'[a-zA-Z0-9]', full))
+                / max(len(full), 1)
+            ),
+
+            "TLDLength": (
+                len(domain.split('.')[-1])
+                if '.' in domain else 0
+            ),
+
+            "NoOfSubDomain": max(len(domain.split('.')) - 2, 0),
+
+            "HasObfuscation": int('%' in full or '@' in full),
+
+            "NoOfObfuscatedChar": full.count('%'),
+
+            "ObfuscationRatio": (
+                full.count('%') / max(len(full), 1)
+            ),
+
+            "NoOfLettersInURL": letters,
+
+            "LetterRatioInURL": (
+                letters / max(len(full), 1)
+            ),
+
+            "NoOfDegitsInURL": digits,
+
+            "DegitRatioInURL": (
+                digits / max(len(full), 1)
+            ),
+
+            "NoOfEqualsInURL": full.count('='),
+
+            "NoOfQMarkInURL": full.count('?'),
+
+            "NoOfAmpersandInURL": full.count('&'),
+
+            "NoOfOtherSpecialCharsInURL": len(
+                re.findall(
+                    r'[^a-zA-Z0-9\-._~:/?#\[\]@!$&\'()*+,;=%]',
+                    full
+                )
+            ),
+
+            "SpacialCharRatioInURL": (
+                len(re.findall(r'[^a-zA-Z0-9]', full))
+                / max(len(full), 1)
+            ),
+
+            "IsHTTPS": int(parsed.scheme == 'https'),
+
+            # ─────────────────────────────
+            # KEYWORD FEATURES
+            # ─────────────────────────────
+            "HasPasswordField": int(
+                'password' in full.lower()
+                or 'login' in full.lower()
+            ),
+
+            "Bank": int(
+                any(
+                    w in full.lower()
+                    for w in ['bank', 'banking', 'secure', 'account']
+                )
+            ),
+
+            "Pay": int(
+                any(
+                    w in full.lower()
+                    for w in ['pay', 'payment', 'checkout', 'billing']
+                )
+            ),
+
+            "Crypto": int(
+                any(
+                    w in full.lower()
+                    for w in ['crypto', 'bitcoin', 'wallet', 'nft']
+                )
+            ),
         }
 
-        # Engineered features
-        features["DigitLetterRatio"]       = features["NoOfDegitsInURL"] / max(features["NoOfLettersInURL"], 1)
-        features["TotalSpecialChars"]      = (features["NoOfEqualsInURL"] + features["NoOfQMarkInURL"]
-                                               + features["NoOfAmpersandInURL"] + features["NoOfOtherSpecialCharsInURL"])
-        features["URLToDomainRatio"]       = features["URLLength"] / max(features["DomainLength"], 1)
-        features["HasExternalResources"]   = 0
-        features["HasRedirect"]            = 0
+        # ─────────────────────────────
+        # PAGE LEVEL FEATURES
+        # Use realistic mean values
+        # instead of zeros
+        # ─────────────────────────────
+        features.update({
+            k: v for k, v in TRAIN_MEANS.items()
+            if k not in features
+        })
+
+        # ─────────────────────────────
+        # ENGINEERED FEATURES
+        # ─────────────────────────────
+        features["DigitLetterRatio"] = (
+            digits / max(letters, 1)
+        )
+
+        features["TotalSpecialChars"] = (
+            features["NoOfEqualsInURL"]
+            + features["NoOfQMarkInURL"]
+            + features["NoOfAmpersandInURL"]
+            + features["NoOfOtherSpecialCharsInURL"]
+        )
+
+        features["URLToDomainRatio"] = (
+            features["URLLength"]
+            / max(features["DomainLength"], 1)
+        )
+
+        features["HasExternalResources"] = (
+            TRAIN_MEANS["HasExternalResources"]
+        )
+
+        features["HasRedirect"] = int(
+            features["NoOfURLRedirect"] > 0
+        )
 
         return features
+
     except Exception as e:
         st.error(f"Feature extraction error: {e}")
         return {}
@@ -285,15 +402,31 @@ def extract_url_features(url: str) -> dict:
 def _char_continuation(url):
     if len(url) < 2:
         return 0.0
-    cont = sum(1 for i in range(1, len(url)) if url[i] == url[i-1])
+
+    cont = sum(
+        1 for i in range(1, len(url))
+        if url[i] == url[i - 1]
+    )
+
     return cont / max(len(url) - 1, 1)
 
 
 def _tld_prob(domain):
-    safe_tlds = {'com': 0.52, 'org': 0.45, 'net': 0.43, 'edu': 0.92,
-                 'gov': 0.98, 'io': 0.38, 'co': 0.35, 'uk': 0.55, 'de': 0.60}
+    safe_tlds = {
+        'com': 0.52,
+        'org': 0.45,
+        'net': 0.43,
+        'edu': 0.92,
+        'gov': 0.98,
+        'io': 0.38,
+        'co': 0.35,
+        'uk': 0.55,
+        'de': 0.60
+    }
+
     parts = domain.split('.')
     tld = parts[-1].lower() if parts else ''
+
     return safe_tlds.get(tld, 0.15)
 
 
@@ -624,15 +757,37 @@ with tab1:
         else:
             # Convert to numpy array — guaranteed column order, no sklearn name remapping
             X_input = feats_to_array(feats)
+            with st.expander("🔬 Debug Info"):
+            st.write("Model classes:", model.classes_)
+            st.write("Prediction array:", model.predict_proba(X_input)[0])
+            st.write("First 10 features:", X_input[0][:10])
+            st.write("URLSimilarityIndex:", feats["URLSimilarityIndex"])
+            st.write("HTTPS:", feats["IsHTTPS"])
 
             # ── MODEL PREDICTION ──
             if loaded:
                 try:
                     pred = int(model.predict(X_input)[0])
                     prob = model.predict_proba(X_input)[0]
-                    # prob[0]=phishing, prob[1]=legitimate (label 0 and 1)
-                    prob_legit = float(prob[1])
-                    prob_phish = float(prob[0])
+
+                    # Correct probability mapping using actual class labels
+                    classes = list(model.classes_)
+
+                    prob_legit = float(prob[classes.index(1)])
+                    prob_phish = float(prob[classes.index(0)])
+
+                    # Debug panel
+                    with st.expander("🔬 Debug Info"):
+                    st.write("Model classes:", model.classes_)
+                    st.write("Raw probabilities:", prob)
+                    st.write("Predicted class:", pred)
+                    st.write("Legit Probability:", prob_legit)
+                    st.write("Phishing Probability:", prob_phish)
+                    st.write("First 10 Features:", X_input[0][:10])
+                    st.write("URLSimilarityIndex:", feats.get("URLSimilarityIndex"))
+                    st.write("HTTPS:", feats.get("IsHTTPS"))
+                    st.write("TLDLegitimateProb:", feats.get("TLDLegitimateProb"))
+
                     model_used = True
                 except Exception as e:
                     st.warning(f"Model error: {e}. Using heuristic fallback.")
@@ -891,7 +1046,8 @@ with tab3:
                 try:
                     pred = int(model.predict(X_input)[0])
                     prob = model.predict_proba(X_input)[0]
-                    prob_legit = float(prob[1])
+                    classes = list(model.classes_)
+                    prob_legit = float(prob[classes.index(1)])
                 except:
                     prob_legit = 1 - min((
                         (not feats.get('IsHTTPS', 0)) * 20 +
