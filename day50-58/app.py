@@ -758,11 +758,11 @@ with tab1:
             # Convert to numpy array — guaranteed column order, no sklearn name remapping
             X_input = feats_to_array(feats)
             with st.expander("🔬 Debug Info"):
-            st.write("Model classes:", model.classes_)
-            st.write("Prediction array:", model.predict_proba(X_input)[0])
-            st.write("First 10 features:", X_input[0][:10])
-            st.write("URLSimilarityIndex:", feats["URLSimilarityIndex"])
-            st.write("HTTPS:", feats["IsHTTPS"])
+                st.write("Model classes:", model.classes_)
+                st.write("Prediction array:", model.predict_proba(X_input)[0])
+                st.write("First 10 features:", X_input[0][:10])
+                st.write("URLSimilarityIndex:", feats["URLSimilarityIndex"])
+                st.write("HTTPS:", feats["IsHTTPS"])
 
             # ── MODEL PREDICTION ──
             if loaded:
