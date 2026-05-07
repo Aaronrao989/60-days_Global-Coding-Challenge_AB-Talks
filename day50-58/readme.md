@@ -14,6 +14,8 @@
 ## 📌 Table of Contents
 
 - [Overview](#-overview)
+- [Why This Model Matters](#-why-this-model-matters)
+- [What the Model Outputs](#-what-the-model-outputs)
 - [Live Demo](#-live-demo)
 - [Project Pipeline](#-project-pipeline)
 - [Dataset](#-dataset)
@@ -43,6 +45,122 @@
 | **Evaluation** | Accuracy, F1, Precision, Recall, ROC-AUC, Confusion Matrix |
 | **Tuning** | GridSearchCV hyperparameter optimization |
 | **Deployment** | Interactive Streamlit web app with real-time URL analysis |
+
+---
+
+## 🎯 Why This Model Matters
+
+### The Real-World Problem
+
+Phishing is one of the most prevalent and damaging forms of cybercrime. Attackers craft URLs that look deceptively similar to trusted websites — mimicking banks, payment portals, or social media platforms — to steal credentials, financial data, and personal information.
+
+Over **3.4 billion phishing emails** are sent every day, and phishing accounts for more than **36% of all data breaches**. Traditional blacklist-based defences (blocking known bad URLs) fail against newly registered phishing domains, which can be deployed and abandoned within hours — long before any blocklist catches up.
+
+### Why Machine Learning?
+
+Rule-based systems ("flag any URL with more than 3 subdomains") are rigid and easy to evade. A machine learning model trained on 235,795 real URLs learns **complex, non-obvious patterns** that no hand-written rule set can capture — for example, the relationship between a TLD's legitimacy score, character continuation rate, and URL-to-domain length ratio acting *together* as a composite phishing signal.
+
+PhishGuard addresses this gap by learning directly from data, making it:
+
+- **Adaptive** — can be retrained as attacker tactics evolve
+- **Scalable** — analyses any URL in milliseconds
+- **Interpretable** — surfaces which features drove each prediction
+- **Generalizable** — detects threats on URLs it has never seen before
+
+### Who Benefits?
+
+| Audience | Use Case |
+|---|---|
+| **Security Teams** | Integrate into email gateways or browser extensions to auto-flag suspicious links |
+| **End Users** | Paste a URL into the app before clicking an unfamiliar link |
+| **Developers** | Use the exported `.pkl` model as a microservice in any Python backend |
+| **Researchers** | Extend the feature set or swap in new classifiers for benchmarking |
+
+---
+
+## 📤 What the Model Outputs
+
+For every URL submitted, the model produces the following:
+
+### 1. Binary Prediction — The Verdict
+
+The primary output is a classification label:
+
+| Output | Label | Meaning | Recommended Action |
+|---|---|---|---|
+| ✅ **Legitimate** | `1` | URL shows patterns consistent with safe, genuine websites | Safe to visit |
+| 🚨 **Phishing** | `0` | URL shows patterns associated with malicious or deceptive sites | Do NOT visit |
+
+### 2. Confidence Score — How Certain Is the Model?
+
+The model returns a **probability between 0% and 100%** for each class, not just a hard label. This tells you *how strongly* the model believes its verdict:
+
+```
+Example A — Clearly Legitimate:
+  URL: https://www.google.com
+  → Legitimate Confidence:  97.3%
+  → Phishing Confidence:     2.7%
+  → Verdict: ✅ LEGITIMATE
+
+Example B — Clear Phishing:
+  URL: http://192.168.0.1/paypal-login/verify?user=admin
+  → Legitimate Confidence:   4.1%
+  → Phishing Confidence:    95.9%
+  → Verdict: 🚨 PHISHING DETECTED
+
+Example C — Ambiguous (treat with caution):
+  URL: http://secure-bank-verify.co/login
+  → Legitimate Confidence:  51.2%
+  → Phishing Confidence:    48.8%
+  → Verdict: ✅ LEGITIMATE (borderline — exercise caution)
+```
+
+> A score near 50% means the model is uncertain. Uncertainty itself is a useful signal — treat borderline URLs with extra care.
+
+### 3. Risk Factor Breakdown — Why Did It Decide That?
+
+Each prediction is explained through individual contributing signals, scored as risk-increasing (+) or risk-reducing (−):
+
+| Signal | Score | Meaning |
+|---|---|---|
+| IP address used as domain | `+30` | Strong phishing indicator — real sites use domain names |
+| URL obfuscation detected | `+25` | Encoded or disguised characters in URL |
+| Password keyword in URL | `+20` | Likely a credential harvesting page |
+| Banking keyword in URL | `+15` | Common lure tactic in phishing campaigns |
+| Multiple subdomains | `+8` per level | Attackers nest fake subdomains to appear legitimate |
+| Uses HTTPS | `−15` | Reduces risk, but HTTPS alone does not guarantee safety |
+| Trusted TLD (`.com`, `.org`) | `−10` | Well-established domain extensions lower risk |
+| Normal URL length | `−5` | Short URLs are less likely to hide malicious paths |
+
+### 4. Visual Outputs in the App
+
+Beyond the verdict and score, the Streamlit app renders four visual outputs:
+
+**Confidence Gauge** — A semicircular dial showing the legitimate confidence score from 0% to 100%, colour-coded green (safe), amber (uncertain), or red (phishing).
+
+**Safety Radar Chart** — A hexagonal radar showing 6 normalized safety dimensions:
+- HTTPS usage, No IP domain, No obfuscation, Short URL, Trusted TLD, Low subdomain count
+
+**Feature Bar Chart** — 10 key extracted features displayed as colour-coded horizontal bars. Red bars indicate risk-raising feature values; green bars indicate safe values.
+
+**Risk Factor List** — All individual risk signals listed with their scores and a small progress bar visualizing their relative contribution to the final verdict.
+
+### 5. Batch Scanner Output (CSV Download)
+
+When scanning multiple URLs, the model produces a results table with one row per URL:
+
+| Column | Description |
+|---|---|
+| `URL` | The input URL (truncated to 60 chars for display) |
+| `Prediction` | ✅ Legitimate or 🚨 Phishing |
+| `Legit %` | Probability the URL is legitimate |
+| `Phish %` | Probability the URL is phishing |
+| `HTTPS` | Whether the URL uses a secure connection |
+| `URL Length` | Total character length of the URL |
+| `Subdomains` | Number of subdomains detected |
+| `Obfuscated` | Whether URL encoding / obfuscation was found |
+
+This table can be downloaded as a `.csv` file for reporting or further analysis.
 
 ---
 
