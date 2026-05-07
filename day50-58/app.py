@@ -320,10 +320,14 @@ FEATURE_COLS = [
 ]
 
 def feats_to_df(feats: dict) -> pd.DataFrame:
-    """Build a single-row DataFrame with columns in exact training order.
-    Missing columns are filled with 0 so the model never receives NaN."""
+    """Build a single-row DataFrame with columns in exact training order."""
     row = {col: feats.get(col, 0) for col in FEATURE_COLS}
     return pd.DataFrame([row], columns=FEATURE_COLS)
+
+def feats_to_array(feats: dict) -> np.ndarray:
+    """Return a (1, 55) numpy array in exact training column order.
+    Raw numpy bypasses ALL sklearn column-name checks — guaranteed correct order."""
+    return np.array([[feats.get(col, 0) for col in FEATURE_COLS]], dtype=float)
 
 
 # ─────────────────────────────────────────────
@@ -618,19 +622,17 @@ with tab1:
         if not feats:
             st.error("Could not extract features from this URL.")
         else:
-            # Use ordered DataFrame — column order MUST match training
-            feat_df = feats_to_df(feats)
+            # Convert to numpy array — guaranteed column order, no sklearn name remapping
+            X_input = feats_to_array(feats)
 
             # ── MODEL PREDICTION ──
             if loaded:
                 try:
-                    # Align columns to exactly what the model saw during training
-                    n_expected = getattr(model, 'n_features_in_', len(FEATURE_COLS))
-                    input_df = feat_df.iloc[:, :n_expected]
-                    pred = model.predict(input_df)[0]
-                    prob = model.predict_proba(input_df)[0]
-                    prob_legit = prob[1]
-                    prob_phish = prob[0]
+                    pred = int(model.predict(X_input)[0])
+                    prob = model.predict_proba(X_input)[0]
+                    # prob[0]=phishing, prob[1]=legitimate (label 0 and 1)
+                    prob_legit = float(prob[1])
+                    prob_phish = float(prob[0])
                     model_used = True
                 except Exception as e:
                     st.warning(f"Model error: {e}. Using heuristic fallback.")
@@ -883,15 +885,13 @@ with tab3:
             if not url.startswith(('http://', 'https://')):
                 url = 'http://' + url
             feats = extract_url_features(url)
-            feat_df = feats_to_df(feats)
+            X_input = feats_to_array(feats)
 
             if loaded:
                 try:
-                    n_expected = getattr(model, 'n_features_in_', len(FEATURE_COLS))
-                    input_df = feat_df.iloc[:, :n_expected]
-                    pred = model.predict(input_df)[0]
-                    prob = model.predict_proba(input_df)[0]
-                    prob_legit = prob[1]
+                    pred = int(model.predict(X_input)[0])
+                    prob = model.predict_proba(X_input)[0]
+                    prob_legit = float(prob[1])
                 except:
                     prob_legit = 1 - min((
                         (not feats.get('IsHTTPS', 0)) * 20 +
